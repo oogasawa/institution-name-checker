@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>Institution English Name Checker</title>
+    <style>
+        body { font-family: sans-serif; margin: 20px; background: #f5f5f5; }
+        h1 { font-size: 1.3em; }
+        .controls { margin-bottom: 15px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+        .controls a, .controls button {
+            padding: 6px 14px; border: 1px solid #ccc; border-radius: 4px;
+            text-decoration: none; color: #333; background: #fff; cursor: pointer; font-size: 0.9em;
+        }
+        .controls a.active { background: #4a90d9; color: #fff; border-color: #4a90d9; }
+        .stats { color: #666; font-size: 0.9em; }
+        .range-nav { margin-bottom: 15px; display: flex; gap: 5px; flex-wrap: wrap; }
+        .range-nav a {
+            padding: 5px 12px; border: 1px solid #ccc; border-radius: 3px;
+            text-decoration: none; color: #333; background: #fff; font-size: 0.85em;
+        }
+        .range-nav a.current { background: #4a90d9; color: #fff; border-color: #4a90d9; }
+        table { border-collapse: collapse; width: 100%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        th, td { border: 1px solid #ddd; padding: 6px 10px; text-align: left; font-size: 0.85em; }
+        th { background: #f0f0f0; position: sticky; top: 0; }
+        tr:hover { background: #f0f8ff; }
+        tr.missing { background: #fff8f0; }
+        td.code { font-family: monospace; white-space: nowrap; }
+        td.url { max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        td.url a { color: #4a90d9; text-decoration: none; }
+        td.name-en { min-width: 200px; }
+        .btn-check {
+            padding: 3px 10px; background: #4a90d9; color: #fff;
+            border: none; border-radius: 3px; cursor: pointer; font-size: 0.8em;
+        }
+        .btn-check:hover { background: #357abd; }
+        .btn-save {
+            padding: 3px 8px; background: #5cb85c; color: #fff;
+            border: none; border-radius: 3px; cursor: pointer; font-size: 0.8em;
+        }
+        .edit-input { width: 250px; padding: 3px; font-size: 0.85em; border: 1px solid #ccc; border-radius: 3px; }
+    </style>
+</head>
+<body>
+    <h1>Institution English Name Checker</h1>
+
+    <div class="controls">
+        <a href="/?filter=all&range={range}" class="{#if filter == 'all'}active{/if}">All ({totalCount})</a>
+        <a href="/?filter=missing&range={range}" class="{#if filter == 'missing'}active{/if}">Missing EN</a>
+        <a href="/?filter=has_en&range={range}" class="{#if filter == 'has_en'}active{/if}">Has EN</a>
+        <span class="stats">Total missing: {missingCount}</span>
+        <form method="post" action="/reload" style="margin:0;">
+            <button type="submit">Reload TSV</button>
+        </form>
+    </div>
+
+    <div class="range-nav">
+        {#for r in ranges}
+        <a href="/?filter={filter}&range={r}" class="{#if range == r}current{/if}">{r}番台</a>
+        {/for}
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Code</th>
+                <th>Name (JA)</th>
+                <th>URL</th>
+                <th>Name (EN)</th>
+                <th>Check</th>
+                <th>Edit</th>
+            </tr>
+        </thead>
+        <tbody>
+            {#for inst in institutions}
+            <tr id="row-{inst.kakenhiCode}" class="{#if inst.nameEn.isEmpty()}missing{/if}">
+                <td class="code">{inst.kakenhiCode}</td>
+                <td>{inst.nameJa}</td>
+                <td class="url">
+                    {#if !inst.url.isEmpty()}
+                    <a href="{inst.url}" target="_blank">{inst.url}</a>
+                    {/if}
+                </td>
+                <td class="name-en" id="name-{inst.kakenhiCode}">{inst.nameEn}</td>
+                <td>
+                    <button class="btn-check" onclick="checkInst('{inst.kakenhiCode}')">Check</button>
+                </td>
+                <td>
+                    <div style="display:flex;gap:4px;">
+                        <input class="edit-input" id="input-{inst.kakenhiCode}" value="{inst.nameEn}" />
+                        <button class="btn-save" onclick="saveInst('{inst.kakenhiCode}')">Save</button>
+                    </div>
+                </td>
+            </tr>
+            {/for}
+        </tbody>
+    </table>
+
+    <script>
+        function checkInst(code) {
+            fetch('/check/' + code, { method: 'POST' });
+        }
+        function saveInst(code) {
+            var val = document.getElementById('input-' + code).value;
+            fetch('/update/' + code, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: 'nameEn=' + encodeURIComponent(val)
+            }).then(function(res) {
+                if (res.ok) {
+                    document.getElementById('name-' + code).textContent = val;
+                    var btn = document.querySelector('#row-' + code + ' .btn-save');
+                    btn.textContent = 'Saved!';
+                    setTimeout(function() { btn.textContent = 'Save'; }, 1000);
+                }
+            });
+        }
+    </script>
+</body>
+</html>
