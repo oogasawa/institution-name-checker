@@ -1,0 +1,68 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-native:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            label: linux-amd64
+            extension: ""
+          - os: macos-latest
+            label: macos-amd64
+            extension: ""
+          - os: windows-latest
+            label: windows-amd64
+            extension: ".exe"
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: graalvm/setup-graalvm@v1
+        with:
+          java-version: '21'
+          distribution: 'graalvm'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build native executable
+        run: |
+          ./mvnw package -Dnative -DskipTests -Dquarkus.native.additional-build-args="--initialize-at-run-time=com.microsoft.playwright"
+        shell: bash
+
+      - name: Rename artifact
+        run: |
+          if [ "${{ matrix.os }}" = "windows-latest" ]; then
+            cp target/*-runner.exe institution-name-checker-${{ matrix.label }}.exe
+          else
+            cp target/*-runner institution-name-checker-${{ matrix.label }}
+          fi
+        shell: bash
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: institution-name-checker-${{ matrix.label }}
+          path: institution-name-checker-${{ matrix.label }}${{ matrix.extension }}
+
+  release:
+    needs: build-native
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            artifacts/institution-name-checker-linux-amd64/institution-name-checker-linux-amd64
+            artifacts/institution-name-checker-macos-amd64/institution-name-checker-macos-amd64
+            artifacts/institution-name-checker-windows-amd64/institution-name-checker-windows-amd64.exe
