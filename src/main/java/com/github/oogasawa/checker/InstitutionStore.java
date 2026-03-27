@@ -18,13 +18,15 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 public class InstitutionStore {
 
     @ConfigProperty(name = "checker.tsv-path",
-            defaultValue = "/home/devteam/Downloads/institutions_with_urls.tsv")
+            defaultValue = "institutions_with_urls.tsv")
     String tsvPath;
 
     @Inject
     DataSource dataSource;
 
     void onStart(@Observes StartupEvent ev) {
+        System.out.println("TSV path: " + new java.io.File(tsvPath).getAbsolutePath());
+        System.out.println("  (override: java -Dchecker.tsv-path=/path/to/file.tsv -jar ...)");
         initSchema();
         if (countAll() == 0) {
             loadFromTsv();
