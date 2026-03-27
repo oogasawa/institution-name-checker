@@ -1,5 +1,8 @@
 package com.github.oogasawa.checker;
 
+import io.quarkus.qute.TemplateData;
+
+@TemplateData
 public class Institution {
     public String kakenhiCode;
     public String nameJa;
