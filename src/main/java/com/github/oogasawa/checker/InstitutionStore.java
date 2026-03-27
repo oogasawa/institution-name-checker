@@ -21,12 +21,17 @@ public class InstitutionStore {
             defaultValue = "institutions_with_urls.tsv")
     String tsvPath;
 
+    @ConfigProperty(name = "quarkus.http.port", defaultValue = "8080")
+    int httpPort;
+
     @Inject
     DataSource dataSource;
 
     void onStart(@Observes StartupEvent ev) {
         System.out.println("TSV path: " + new java.io.File(tsvPath).getAbsolutePath());
         System.out.println("  (override: java -Dchecker.tsv-path=/path/to/file.tsv -jar ...)");
+        System.out.println("Port    : " + httpPort);
+        System.out.println("  (override: java -Dquarkus.http.port=<port> -jar ...)");
         initSchema();
         if (countAll() == 0) {
             loadFromTsv();
