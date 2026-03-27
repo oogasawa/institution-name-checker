@@ -31,7 +31,7 @@ jobs:
 
       - name: Build native executable
         run: |
-          ./mvnw package -Dnative -DskipTests -Dquarkus.native.additional-build-args="--initialize-at-run-time=com.microsoft.playwright"
+          ./mvnw package -Dnative -DskipTests
         shell: bash
 
       - name: Rename artifact
