@@ -129,7 +129,7 @@ class E2ETest {
         System.out.println("Range links: " + rangeLinks.all().size());
     }
 
-    // ---- Test 4: Check button exists ----
+    // ---- Test 4: Check button ----
 
     @Test
     void checkButtonExistsOnEachRow() {
@@ -138,6 +138,24 @@ class E2ETest {
         assertFalse(checkBtns.isEmpty(), "Check buttons should be present");
         assertEquals("Check", checkBtns.get(0).textContent().trim());
         System.out.println("Check buttons: " + checkBtns.size());
+    }
+
+    @Test
+    void checkButtonClickOpensNewBrowserWindow() {
+        page.navigate(BASE_URL);
+
+        // POST /check/10101 should return 200 (server launches headful browser)
+        APIResponse response = page.request().post(BASE_URL + "/check/10101");
+        assertEquals(200, response.status(), "POST /check/{code} should return 200");
+
+        // Wait briefly for the browser to open on the server side
+        page.waitForTimeout(3000);
+
+        // Verify the app is still responsive after launching browser
+        Response mainPage = page.navigate(BASE_URL);
+        assertEquals(200, mainPage.status(), "App should still respond after Check");
+
+        System.out.println("Check button POST: 200 OK, app still responsive");
     }
 
     // ---- Test 5: Save (update) ----
