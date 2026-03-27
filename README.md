@@ -1,59 +1,112 @@
 # institution-name-checker
 
-This project uses Quarkus, the Supersonic Subatomic Java Framework.
+A web application for reviewing and filling in the English names of Japanese research institutions (科研費機関コード対応機関名).
 
-If you want to learn more about Quarkus, please visit its website: <https://quarkus.io/>.
+## What it does
 
-## Running the application in dev mode
+- Loads institution data from a TSV file (`institutions_with_urls.tsv`)
+- Displays institutions in a table, filterable by whether an English name is missing
+- **Check button**: opens a headful Chromium browser with 3 tabs to help find the English name:
+  - DuckDuckGo search for the Japanese name
+  - The institution's website
+  - DuckDuckGo search for "Japanese name English name"
+- **Save button**: saves the English name back to the TSV file
 
-You can run your application in dev mode that enables live coding using:
+## Requirements
 
-```shell script
-./mvnw quarkus:dev
+- Java 17 or later (for the über-jar)
+- A display (X11/Wayland on Linux, or macOS/Windows desktop) — required for the headful browser
+- `institutions_with_urls.tsv` in the working directory (or specify with `-Dchecker.tsv-path=`)
+
+## Running
+
+### Download the binary
+
+Download the latest release from the [Releases page](https://github.com/oogasawa/institution-name-checker/releases):
+
+| File | Platform |
+|------|----------|
+| `institution-name-checker-linux-amd64` | Linux x86_64 (native) |
+| `institution-name-checker-macos-amd64` | macOS x86_64 (native) |
+| `institution-name-checker-windows-amd64.exe` | Windows x86_64 (native) |
+
+### First run — Playwright browser installation
+
+The Check button uses [Playwright](https://playwright.dev/java/) to open a Chromium browser.
+On the first run, Playwright will automatically download the Chromium browser binary to
+`~/.cache/ms-playwright/`. This requires an internet connection and takes a few minutes.
+
+If automatic download fails, install manually:
+
+```bash
+# via npx (if Node.js is available)
+npx playwright install chromium
 ```
 
-> **_NOTE:_**  Quarkus now ships with a Dev UI, which is available in dev mode only at <http://localhost:8080/q/dev/>.
+### Start the application
 
-## Packaging and running the application
+Place `institutions_with_urls.tsv` in the current directory, then:
 
-The application can be packaged using:
+```bash
+# Linux / macOS
+chmod +x institution-name-checker-linux-amd64
+./institution-name-checker-linux-amd64
 
-```shell script
+# Windows
+institution-name-checker-windows-amd64.exe
+```
+
+The application starts on port **8090** by default. Open `http://localhost:8090` in your browser.
+
+On startup, the following is printed:
+
+```
+TSV path    : /path/to/institutions_with_urls.tsv
+  (override : java -Dchecker.tsv-path=/path/to/file.tsv -jar ...)
+HTTP port   : 8090
+  (override : java -Dquarkus.http.port=9090 -jar ...)
+```
+
+### Override options
+
+| Option | Default | Example |
+|--------|---------|---------|
+| `-Dchecker.tsv-path=` | `./institutions_with_urls.tsv` | `-Dchecker.tsv-path=/data/institutions.tsv` |
+| `-Dquarkus.http.port=` | `8090` | `-Dquarkus.http.port=9090` |
+
+**Note**: for native binaries, use environment variables instead of `-D` flags:
+
+```bash
+checker.tsv-path=/data/institutions.tsv ./institution-name-checker-linux-amd64
+quarkus.http.port=9090 ./institution-name-checker-linux-amd64
+```
+
+### TSV file format
+
+Tab-separated, UTF-8 (BOM optional), with a header row:
+
+```
+kakenhi_code	name_ja	url	name_en
+10101	東京大学	https://www.u-tokyo.ac.jp	The University of Tokyo
+...
+```
+
+## Building from source
+
+```bash
+git clone https://github.com/oogasawa/institution-name-checker.git
+cd institution-name-checker
 ./mvnw package
+java -jar target/institution-name-checker-1.0.0-runner.jar
 ```
 
-It produces the `quarkus-run.jar` file in the `target/quarkus-app/` directory.
-Be aware that it’s not an _über-jar_ as the dependencies are copied into the `target/quarkus-app/lib/` directory.
+Native binary (requires GraalVM 21+):
 
-The application is now runnable using `java -jar target/quarkus-app/quarkus-run.jar`.
-
-If you want to build an _über-jar_, execute the following command:
-
-```shell script
-./mvnw package -Dquarkus.package.jar.type=uber-jar
-```
-
-The application, packaged as an _über-jar_, is now runnable using `java -jar target/*-runner.jar`.
-
-## Creating a native executable
-
-You can create a native executable using:
-
-```shell script
+```bash
 ./mvnw package -Dnative
+./target/institution-name-checker-1.0.0-runner
 ```
 
-Or, if you don't have GraalVM installed, you can run the native executable build in a container using:
+## License
 
-```shell script
-./mvnw package -Dnative -Dquarkus.native.container-build=true
-```
-
-You can then execute your native executable with: `./target/institution-name-checker-0.1.0-runner`
-
-If you want to learn more about building native executables, please consult <https://quarkus.io/guides/maven-tooling>.
-
-## Related Guides
-
-- Qute ([guide](https://quarkus.io/guides/qute)): Offer templating support for web, email, etc in a build time, type-safe way
-- REST ([guide](https://quarkus.io/guides/rest)): A Jakarta REST implementation utilizing build time processing and Vert.x. This extension is not compatible with the quarkus-resteasy extension, or any of the extensions that depend on it.
+Apache License 2.0
