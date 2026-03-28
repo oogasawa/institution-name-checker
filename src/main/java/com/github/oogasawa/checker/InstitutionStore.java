@@ -4,6 +4,7 @@ import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.sql.*;
 import java.util.*;
+import java.util.logging.Logger;
 
 import javax.sql.DataSource;
 
@@ -17,6 +18,8 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 @ApplicationScoped
 public class InstitutionStore {
 
+    private static final Logger LOG = Logger.getLogger(InstitutionStore.class.getName());
+
     @ConfigProperty(name = "checker.tsv-path",
             defaultValue = "institutions_with_urls.tsv")
     String tsvPath;
@@ -24,17 +27,38 @@ public class InstitutionStore {
     @ConfigProperty(name = "quarkus.http.port", defaultValue = "8080")
     int httpPort;
 
+    @ConfigProperty(name = "quarkus.datasource.jdbc.url", defaultValue = "")
+    String jdbcUrl;
+
     @Inject
     DataSource dataSource;
 
     void onStart(@Observes StartupEvent ev) {
-        System.out.println("TSV path: " + new java.io.File(tsvPath).getAbsolutePath());
-        System.out.println("  (override: java -Dchecker.tsv-path=/path/to/file.tsv -jar ...)");
-        System.out.println("Port    : " + httpPort);
-        System.out.println("  (override: java -Dquarkus.http.port=<port> -jar ...)");
+        File tsvFile = new java.io.File(tsvPath);
+        LOG.info("=== Institution Name Checker startup ===");
+        LOG.info("Working directory : " + new java.io.File(".").getAbsolutePath());
+        LOG.info("TSV path (config): " + tsvPath);
+        LOG.info("TSV path (abs)   : " + tsvFile.getAbsolutePath());
+        LOG.info("TSV file exists  : " + tsvFile.exists());
+        if (tsvFile.exists()) {
+            LOG.info("TSV file size    : " + tsvFile.length() + " bytes");
+            LOG.info("TSV last modified: " + new java.util.Date(tsvFile.lastModified()));
+        }
+        LOG.info("JDBC URL         : " + jdbcUrl);
+        LOG.info("HTTP port        : " + httpPort);
+        LOG.info("  (override TSV : java -Dchecker.tsv-path=/path/to/file.tsv -jar ...)");
+        LOG.info("  (override port: java -Dquarkus.http.port=<port> -jar ...)");
+
         initSchema();
-        if (countAll() == 0) {
+
+        int existing = countAll();
+        LOG.info("Existing rows in H2: " + existing);
+        if (existing == 0) {
+            LOG.info("H2 is empty, loading from TSV file...");
             loadFromTsv();
+            LOG.info("Loaded " + countAll() + " rows from TSV into H2");
+        } else {
+            LOG.info("H2 already has data, skipping TSV load. Use Reload TSV button to force reload.");
         }
     }
 
@@ -67,13 +91,23 @@ public class InstitutionStore {
 
     /** Load TSV file into H2. Called on first start or on reload. */
     public void load() {
+        File tsvFile = new java.io.File(tsvPath);
+        LOG.info("=== Reload TSV requested ===");
+        LOG.info("TSV path (abs)   : " + tsvFile.getAbsolutePath());
+        LOG.info("TSV file exists  : " + tsvFile.exists());
+        if (tsvFile.exists()) {
+            LOG.info("TSV file size    : " + tsvFile.length() + " bytes");
+            LOG.info("TSV last modified: " + new java.util.Date(tsvFile.lastModified()));
+        }
         try (Connection conn = dataSource.getConnection();
              Statement stmt = conn.createStatement()) {
             stmt.execute("DELETE FROM institutions");
+            LOG.info("Cleared existing H2 data");
         } catch (SQLException e) {
             throw new RuntimeException("Failed to clear table", e);
         }
         loadFromTsv();
+        LOG.info("Reloaded " + countAll() + " rows from TSV into H2");
     }
 
     private void loadFromTsv() {
