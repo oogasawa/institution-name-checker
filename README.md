@@ -1,148 +1,175 @@
 # institution-name-checker
 
-Japanese research institutions (科研費申請機関) have official codes (機関番号) and Japanese names, but many lack official English names. This tool helps a human reviewer look up and fill in the English names one by one.
+A tool for reviewing and filling in the English names of Japanese research institutions (KAKENHI institution codes). A human reviewer edits English names in a web UI while looking up each institution via DuckDuckGo search.
 
-## How it works
+## 1. Windows
 
-### Data flow
+### Prerequisites
 
-```
-TSV file  ──(initial load)──>  H2 database  ──(display)──>  Web UI
-                                    │
-                                    ├──(Save button)──>  Update H2 + write back to TSV
-                                    │
-TSV file  <──(Reload TSV)─────  H2 database
-```
+- Java 21 or later
+- Chrome, Edge, or Firefox
+- A TSV data file (`institutions_with_urls.tsv`)
 
-1. On first startup, the app reads `institutions_with_urls.tsv` and loads all rows into an embedded H2 database (file: `./data/checker.mv.db`).
-2. On subsequent startups, the app uses the existing H2 data and **does not re-read the TSV file**. This preserves edits you made in previous sessions.
-3. The web UI displays institutions grouped by 10000-range (10000番台, 20000番台, ...).
+#### Installing Java via Scoop
 
-### Buttons
-
-- **Check** — Opens a new browser window with 3 tabs (server launches Chrome/Edge/Firefox via `--new-window`):
-  1. DuckDuckGo search for the Japanese name
-  2. The institution's URL (if known)
-  3. DuckDuckGo search for "Japanese name English name"
-- **Save** — Writes the edited English name to H2, then exports the entire H2 contents back to the TSV file. The TSV file is always kept in sync with H2.
-- **Reload TSV** — Deletes all H2 data and re-reads from the TSV file. Use this when you have replaced the TSV file with a new version.
-- **Filter buttons** (All / Missing EN / Has EN) — Filter the displayed rows.
-
-### H2 database behavior
-
-- H2 data file: `./data/checker.mv.db` (created in the working directory)
-- If `./data/checker.mv.db` already exists and contains data, the TSV file is **not** read on startup.
-- To force a fresh start, either:
-  - Click the **Reload TSV** button in the web UI, or
-  - Delete `./data/` directory before starting the app.
-
-## Requirements
-
-- Java 21 or later (GraalVM recommended)
-- Chrome, Edge, or Firefox installed (for the Check button)
-- `institutions_with_urls.tsv` in the working directory (or specify path with `-Dchecker.tsv-path=`)
-
-## Installing Java on Windows (PowerShell)
-
-### 1. Install Git (includes Git Bash)
+Install Git (includes Git Bash):
 
 ```powershell
 winget install Git.Git
 ```
 
-After installation, restart PowerShell.
-
-### 2. Install Scoop
+Restart PowerShell, then install Scoop:
 
 ```powershell
 Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 Invoke-RestMethod -Uri https://get.scoop.sh | Invoke-Expression
 ```
 
-### 3. Add the Java bucket and install GraalVM
+Install GraalVM 21:
 
 ```powershell
 scoop bucket add java
 scoop install java/graalvm-oracle-21jdk
 ```
 
-### 4. Verify
+Verify:
 
 ```powershell
 java -version
 ```
 
-`oracle-graalvm 21` と表示されればOKです。
-
-## Running
-
-### Using the uber-jar (recommended for all platforms)
+### Using the uber-jar
 
 Download `institution-name-checker-1.0.0-runner.jar` from the [Releases page](https://github.com/oogasawa/institution-name-checker/releases).
 
-Place `institutions_with_urls.tsv` in the same directory as the jar, then:
+Place `institutions_with_urls.tsv` in the same directory as the jar, then run:
+
+```powershell
+java -jar institution-name-checker-1.0.0-runner.jar
+```
+
+Open `http://localhost:8090` in your browser.
+
+To specify a different TSV file or port:
+
+```powershell
+java -Dchecker.tsv-path=C:\data\institutions.tsv -Dquarkus.http.port=9090 -jar institution-name-checker-1.0.0-runner.jar
+```
+
+#### Loading data
+
+On first startup, the app reads the TSV file and loads all rows into an embedded H2 database (`./data/checker.mv.db`). On subsequent startups, it uses the existing H2 data without re-reading the TSV.
+
+To reload from a new or updated TSV file, click the **Load TSV** button in the web UI, or delete the `./data/` directory before starting the app.
+
+#### Saving data
+
+Edits are auto-saved to the H2 database whenever the cursor leaves an edit field. To export the current state back to the TSV file, click the **Save TSV** button.
+
+### Using the native binary
+
+Download `institution-name-checker-windows-amd64.exe` from the [Releases page](https://github.com/oogasawa/institution-name-checker/releases).
+
+Place `institutions_with_urls.tsv` in the same directory, then run:
+
+```powershell
+.\institution-name-checker-windows-amd64.exe
+```
+
+No Java installation is required for the native binary.
+
+## 2. Linux
+
+### Prerequisites
+
+- Java 21 or later
+- Chrome or Chromium
+- A TSV data file (`institutions_with_urls.tsv`)
+
+### Using the uber-jar
+
+Download `institution-name-checker-1.0.0-runner.jar` from the [Releases page](https://github.com/oogasawa/institution-name-checker/releases).
+
+Place `institutions_with_urls.tsv` in the same directory as the jar, then run:
 
 ```bash
 java -jar institution-name-checker-1.0.0-runner.jar
 ```
 
-The application starts on port **8090**. Open `http://localhost:8090` in your browser.
+Open `http://localhost:8090` in your browser.
 
-### Using native binaries
-
-Download from the [Releases page](https://github.com/oogasawa/institution-name-checker/releases):
-
-| File | Platform |
-|------|----------|
-| `institution-name-checker-1.0.0-runner.jar` | All platforms (requires Java 21+) |
-| `institution-name-checker-linux-amd64` | Linux x86_64 (native) |
-| `institution-name-checker-macos-arm64` | macOS Apple Silicon (native) |
-| `institution-name-checker-windows-amd64.exe` | Windows x86_64 (native) |
+To specify a different TSV file or port:
 
 ```bash
-# Linux
+java -Dchecker.tsv-path=/data/institutions.tsv -Dquarkus.http.port=9090 -jar institution-name-checker-1.0.0-runner.jar
+```
+
+#### Loading data
+
+On first startup, the app reads the TSV file and loads all rows into an embedded H2 database (`./data/checker.mv.db`). On subsequent startups, it uses the existing H2 data without re-reading the TSV.
+
+To reload from a new or updated TSV file, click the **Load TSV** button in the web UI, or delete the `./data/` directory before starting the app.
+
+#### Saving data
+
+Edits are auto-saved to the H2 database whenever the cursor leaves an edit field. To export the current state back to the TSV file, click the **Save TSV** button.
+
+### Using the native binary
+
+Download `institution-name-checker-linux-amd64` from the [Releases page](https://github.com/oogasawa/institution-name-checker/releases).
+
+```bash
 chmod +x institution-name-checker-linux-amd64
 ./institution-name-checker-linux-amd64
+```
 
-# macOS (Apple Silicon)
+No Java installation is required for the native binary. Place `institutions_with_urls.tsv` in the working directory.
+
+## 3. macOS (Apple Silicon)
+
+### Prerequisites
+
+- Java 21 or later
+- Chrome or Safari
+- A TSV data file (`institutions_with_urls.tsv`)
+
+### Using the native binary
+
+Download `institution-name-checker-macos-arm64` from the [Releases page](https://github.com/oogasawa/institution-name-checker/releases).
+
+```bash
 chmod +x institution-name-checker-macos-arm64
 ./institution-name-checker-macos-arm64
-
-# Windows (PowerShell)
-.\institution-name-checker-windows-amd64.exe
 ```
 
-### Startup log
+The uber-jar also works on macOS with Java 21 installed.
 
-On startup, the console shows:
+## 4. How it works
 
-```
-Working directory : C:\Users\you\checker
-TSV path (config): institutions_with_urls.tsv
-TSV path (abs)   : C:\Users\you\checker\institutions_with_urls.tsv
-TSV file exists  : true
-TSV file size    : 234567 bytes
-TSV last modified: Fri Mar 28 12:00:00 JST 2026
-JDBC URL         : jdbc:h2:file:./data/checker;...
-HTTP port        : 8090
-Existing rows in H2: 0
-H2 is empty, loading from TSV file...
-Loaded 1837 rows from TSV into H2
-```
-
-If H2 already has data:
+### Data flow
 
 ```
-Existing rows in H2: 1837
-H2 already has data, skipping TSV load. Use Reload TSV button to force reload.
+TSV file  ──(Load TSV)──>  H2 database  ──(display)──>  Web UI
+                                │
+                                ├──(auto-save on blur)──>  Update H2
+                                │
+TSV file  <──(Save TSV)──  H2 database
 ```
 
-### Override options
+1. On first startup, the app reads `institutions_with_urls.tsv` into an embedded H2 database (file: `./data/checker.mv.db`).
+2. On subsequent startups, the app uses existing H2 data and does not re-read the TSV file. This preserves edits from previous sessions.
+3. The web UI groups institutions by 10000-range (10000, 20000, ...).
 
-| Option | Default | Example |
-|--------|---------|---------|
-| `-Dchecker.tsv-path=` | `institutions_with_urls.tsv` | `-Dchecker.tsv-path=C:\data\institutions.tsv` |
-| `-Dquarkus.http.port=` | `8090` | `-Dquarkus.http.port=9090` |
+### UI controls
+
+- **Check** button — Opens a new browser window with 3 tabs via the server launching Chrome/Edge/Firefox with `--new-window`:
+  1. DuckDuckGo search for the Japanese name
+  2. The institution's URL (if known)
+  3. DuckDuckGo search for "Japanese name English name"
+- **Name (EN)** field — Editable. Changes are auto-saved to H2 when the field loses focus (border flashes green on success).
+- **Load TSV** button — Clears H2 and re-reads the TSV file. Use after replacing the TSV with a new version.
+- **Save TSV** button — Exports the current H2 contents back to the TSV file.
+- **Filter buttons** (All / Missing EN / Has EN) — Filter displayed rows.
 
 ### TSV file format
 
@@ -150,9 +177,15 @@ Tab-separated, UTF-8 (BOM optional), with a header row:
 
 ```
 kakenhi_code	name_ja	url	name_en
-10101	東京大学	https://www.u-tokyo.ac.jp	The University of Tokyo
-...
+10101	...	https://www.u-tokyo.ac.jp	The University of Tokyo
 ```
+
+### Options
+
+| Option | Default | Example |
+|--------|---------|---------|
+| `-Dchecker.tsv-path=` | `institutions_with_urls.tsv` | `-Dchecker.tsv-path=/data/inst.tsv` |
+| `-Dquarkus.http.port=` | `8090` | `-Dquarkus.http.port=9090` |
 
 ## Building from source
 
