@@ -46,7 +46,7 @@ Download `institution-name-checker-1.0.0-runner.jar` from the [Releases page](ht
 
 #### Starting the app
 
-The simplest way is to place your TSV file in the same directory as the jar with the default name `institutions_with_urls.tsv`, then run:
+The data file `institutions_with_urls.tsv` is included in this repository. Place it in the same directory as the jar, then run:
 
 ```powershell
 java -jar institution-name-checker-1.0.0-runner.jar
