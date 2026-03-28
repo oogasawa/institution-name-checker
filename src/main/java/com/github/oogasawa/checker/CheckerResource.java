@@ -68,14 +68,20 @@ public class CheckerResource {
     public Response update(@PathParam("code") String code,
                            @FormParam("nameEn") String nameEn) {
         store.updateNameEn(code, nameEn != null ? nameEn.trim() : "");
-        store.save();
         return Response.ok().build();
     }
 
     @POST
-    @Path("/reload")
-    public Response reload() {
+    @Path("/load-tsv")
+    public Response loadTsv() {
         store.load();
+        return Response.seeOther(URI.create("/")).build();
+    }
+
+    @POST
+    @Path("/save-tsv")
+    public Response saveTsv() {
+        store.save();
         return Response.seeOther(URI.create("/")).build();
     }
 }
