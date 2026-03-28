@@ -14,9 +14,41 @@ A web application for reviewing and filling in the English names of Japanese res
 
 ## Requirements
 
-- Java 17 or later (for the über-jar)
-- A display (X11/Wayland on Linux, or macOS/Windows desktop) — required for the headful browser
+- Java 21 or later (GraalVM recommended)
+- A display (X11/Wayland on Linux, or macOS/Windows desktop) — required for the Check button
 - `institutions_with_urls.tsv` in the working directory (or specify with `-Dchecker.tsv-path=`)
+
+## Installing Java on Windows (PowerShell)
+
+### 1. Install Git (includes Git Bash)
+
+```powershell
+winget install Git.Git
+```
+
+After installation, restart PowerShell.
+
+### 2. Install Scoop
+
+```powershell
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+Invoke-RestMethod -Uri https://get.scoop.sh | Invoke-Expression
+```
+
+### 3. Add the Java bucket and install GraalVM
+
+```powershell
+scoop bucket add java
+scoop install java/graalvm-oracle-21jdk
+```
+
+### 4. Verify
+
+```powershell
+java -version
+```
+
+`oracle-graalvm 21` と表示されればOKです。
 
 ## Running
 

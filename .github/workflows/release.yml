@@ -6,6 +6,28 @@ on:
       - 'v*'
 
 jobs:
+  build-uber-jar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: graalvm/setup-graalvm@v1
+        with:
+          java-version: '21'
+          distribution: 'graalvm'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build uber-jar
+        run: ./mvnw package -DskipTests
+
+      - name: Rename artifact
+        run: cp target/*-runner.jar institution-name-checker-1.0.0-runner.jar
+
+      - uses: actions/upload-artifact@v5
+        with:
+          name: uber-jar
+          path: institution-name-checker-1.0.0-runner.jar
+
   build-native:
     strategy:
       matrix:
@@ -13,8 +35,11 @@ jobs:
           - os: ubuntu-latest
             label: linux-amd64
             extension: ""
-          - os: macos-latest
+          - os: macos-13
             label: macos-amd64
+            extension: ""
+          - os: macos-latest
+            label: macos-arm64
             extension: ""
           - os: windows-latest
             label: windows-amd64
@@ -30,8 +55,7 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build native executable
-        run: |
-          ./mvnw package -Dnative -DskipTests
+        run: ./mvnw package -Dnative -DskipTests
         shell: bash
 
       - name: Rename artifact
@@ -49,7 +73,7 @@ jobs:
           path: institution-name-checker-${{ matrix.label }}${{ matrix.extension }}
 
   release:
-    needs: build-native
+    needs: [build-uber-jar, build-native]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -63,6 +87,8 @@ jobs:
         with:
           generate_release_notes: true
           files: |
+            artifacts/uber-jar/institution-name-checker-1.0.0-runner.jar
             artifacts/institution-name-checker-linux-amd64/institution-name-checker-linux-amd64
             artifacts/institution-name-checker-macos-amd64/institution-name-checker-macos-amd64
+            artifacts/institution-name-checker-macos-arm64/institution-name-checker-macos-arm64
             artifacts/institution-name-checker-windows-amd64/institution-name-checker-windows-amd64.exe

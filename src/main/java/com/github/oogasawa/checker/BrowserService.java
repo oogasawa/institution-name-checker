@@ -11,20 +11,11 @@ import jakarta.enterprise.context.ApplicationScoped;
 @ApplicationScoped
 public class BrowserService {
 
-    // Browser candidates tried in order (Linux, macOS, Windows)
-    private static final String[] BROWSERS = {
-        "google-chrome", "google-chrome-stable", "chromium", "chromium-browser",
-        "firefox", "open", "xdg-open"
-    };
-
     /**
      * Open 3 tabs in the system browser:
      *   Tab 1: DuckDuckGo search for the Japanese name
      *   Tab 2: The institution's URL
      *   Tab 3: DuckDuckGo search for "Japanese name English name"
-     *
-     * Chrome/Chromium accept multiple URLs as arguments and open them as tabs
-     * in a single window.
      */
     public void openForReview(String nameJa, String url) {
         String encodedName  = URLEncoder.encode(nameJa, StandardCharsets.UTF_8);
@@ -32,24 +23,83 @@ public class BrowserService {
         String url1 = "https://duckduckgo.com/?q=" + encodedName;
         String url3 = "https://duckduckgo.com/?q=" + encodedQuery;
 
-        // Try Chrome/Chromium first: pass all URLs as arguments → opens as tabs
-        for (String browser : new String[]{"google-chrome", "google-chrome-stable", "chromium", "chromium-browser"}) {
-            if (tryLaunch(browser, url1, url != null && !url.isEmpty() ? url : null, url3)) return;
-        }
+        List<String> urls = new ArrayList<>();
+        urls.add(url1);
+        if (url != null && !url.isEmpty()) urls.add(url);
+        urls.add(url3);
 
-        // Fallback: open each URL separately with xdg-open / open
-        String opener = System.getProperty("os.name", "").toLowerCase().contains("mac") ? "open" : "xdg-open";
-        tryLaunch(opener, url1);
-        if (url != null && !url.isEmpty()) tryLaunch(opener, url);
-        tryLaunch(opener, url3);
+        String os = System.getProperty("os.name", "").toLowerCase();
+
+        if (os.contains("win")) {
+            openOnWindows(urls);
+        } else if (os.contains("mac")) {
+            openOnMac(urls);
+        } else {
+            openOnLinux(urls);
+        }
     }
 
-    private boolean tryLaunch(String browser, String... urls) {
-        List<String> cmd = new ArrayList<>();
-        cmd.add(browser);
-        for (String u : urls) {
-            if (u != null) cmd.add(u);
+    private void openOnWindows(List<String> urls) {
+        // Try Chrome first (multiple URLs = multiple tabs in one window)
+        for (String chrome : new String[]{
+                "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+                "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
+                System.getenv("LOCALAPPDATA") + "\\Google\\Chrome\\Application\\chrome.exe"}) {
+            if (chrome != null && new java.io.File(chrome).exists()) {
+                List<String> cmd = new ArrayList<>();
+                cmd.add(chrome);
+                cmd.addAll(urls);
+                if (tryLaunch(cmd)) return;
+            }
         }
+        // Try Firefox
+        for (String ff : new String[]{
+                "C:\\Program Files\\Mozilla Firefox\\firefox.exe",
+                "C:\\Program Files (x86)\\Mozilla Firefox\\firefox.exe"}) {
+            if (new java.io.File(ff).exists()) {
+                List<String> cmd = new ArrayList<>();
+                cmd.add(ff);
+                cmd.addAll(urls);
+                if (tryLaunch(cmd)) return;
+            }
+        }
+        // Fallback: open each URL with default browser via cmd /c start
+        for (String u : urls) {
+            tryLaunch(List.of("cmd", "/c", "start", "", u));
+            try { Thread.sleep(500); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
+        }
+    }
+
+    private void openOnMac(List<String> urls) {
+        // Try Chrome
+        String chrome = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
+        if (new java.io.File(chrome).exists()) {
+            List<String> cmd = new ArrayList<>();
+            cmd.add(chrome);
+            cmd.addAll(urls);
+            if (tryLaunch(cmd)) return;
+        }
+        // Fallback: open each URL with default browser
+        for (String u : urls) {
+            tryLaunch(List.of("open", u));
+        }
+    }
+
+    private void openOnLinux(List<String> urls) {
+        // Try Chrome/Chromium (multiple URLs = multiple tabs)
+        for (String browser : new String[]{"google-chrome", "google-chrome-stable", "chromium", "chromium-browser"}) {
+            List<String> cmd = new ArrayList<>();
+            cmd.add(browser);
+            cmd.addAll(urls);
+            if (tryLaunch(cmd)) return;
+        }
+        // Fallback: xdg-open each URL
+        for (String u : urls) {
+            tryLaunch(List.of("xdg-open", u));
+        }
+    }
+
+    private boolean tryLaunch(List<String> cmd) {
         try {
             new ProcessBuilder(cmd)
                 .redirectErrorStream(true)
