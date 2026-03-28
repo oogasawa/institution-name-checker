@@ -97,7 +97,7 @@
 
     <script>
         function checkInst(code) {
-            window.open('/launch/' + code, '_blank');
+            fetch('/check/' + code, { method: 'POST' });
         }
         function saveInst(code) {
             var val = document.getElementById('input-' + code).value;
