@@ -2,7 +2,9 @@
 
 A tool for reviewing and filling in the English names of Japanese research institutions (KAKENHI institution codes). A human reviewer edits English names in a web UI while looking up each institution via DuckDuckGo search.
 
-## 1. Windows
+## 1. Windows (PowerShell)
+
+All commands in this section are intended to be run in **Windows PowerShell**. Open it from the Start menu by searching for "PowerShell".
 
 ### Prerequisites
 
