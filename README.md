@@ -42,41 +42,57 @@ java -version
 
 Download `institution-name-checker-1.0.0-runner.jar` from the [Releases page](https://github.com/oogasawa/institution-name-checker/releases).
 
-Place `institutions_with_urls.tsv` in the same directory as the jar, then run:
+#### Starting the app
+
+The simplest way is to place your TSV file in the same directory as the jar with the default name `institutions_with_urls.tsv`, then run:
 
 ```powershell
 java -jar institution-name-checker-1.0.0-runner.jar
 ```
 
-Open `http://localhost:8090` in your browser.
-
-To specify a different TSV file or port:
+To use a TSV file with a different name or in a different location, specify it with `-Dchecker.tsv-path`:
 
 ```powershell
-java -Dchecker.tsv-path=C:\data\institutions.tsv -Dquarkus.http.port=9090 -jar institution-name-checker-1.0.0-runner.jar
+java -Dchecker.tsv-path=C:\data\my_institutions.tsv -jar institution-name-checker-1.0.0-runner.jar
 ```
+
+To change the HTTP port (default 8090):
+
+```powershell
+java -Dquarkus.http.port=9090 -jar institution-name-checker-1.0.0-runner.jar
+```
+
+Open `http://localhost:8090` in your browser.
 
 #### Loading data
 
-On first startup, the app reads the TSV file and loads all rows into an embedded H2 database (`./data/checker.mv.db`). On subsequent startups, it uses the existing H2 data without re-reading the TSV.
+The TSV file name can be anything, as long as it follows the required format (see [TSV file format](#tsv-file-format)). The default name is `institutions_with_urls.tsv`.
 
-To reload from a new or updated TSV file, click the **Load TSV** button in the web UI, or delete the `./data/` directory before starting the app.
+On **first startup** (or when the H2 database is empty), the app reads the TSV file and loads all rows into an embedded H2 database stored at `./data/checker.mv.db` relative to the working directory. If the TSV file does not exist and the H2 database is also empty, the app starts with an empty table.
+
+On **subsequent startups**, the app uses the existing H2 data and does **not** re-read the TSV file. This preserves edits you made in previous sessions.
+
+To **reload** from a new or updated TSV file, click the **Load TSV** button in the web UI. This deletes all H2 data and re-reads the TSV file. You can also force a reload by deleting the `./data/` directory before starting the app.
+
+**Warning**: If you click **Load TSV** when the TSV file does not exist at the configured path, the app will show an error. Check the startup log in the console to confirm the resolved file path.
 
 #### Saving data
 
-Edits are auto-saved to the H2 database whenever the cursor leaves an edit field. To export the current state back to the TSV file, click the **Save TSV** button.
+Edits you make in the Name (EN) column are auto-saved to the H2 database whenever the cursor leaves the edit field (the border flashes green to confirm). These edits persist across restarts because H2 stores data on disk.
+
+To **export** the current state back to the TSV file, click the **Save TSV** button. This overwrites the TSV file at the configured path with all current H2 data.
 
 ### Using the native binary
 
 Download `institution-name-checker-windows-amd64.exe` from the [Releases page](https://github.com/oogasawa/institution-name-checker/releases).
 
-Place `institutions_with_urls.tsv` in the same directory, then run:
+Place your TSV file in the same directory, then run:
 
 ```powershell
 .\institution-name-checker-windows-amd64.exe
 ```
 
-No Java installation is required for the native binary.
+No Java installation is required for the native binary. The same loading/saving behavior described above applies.
 
 ## 2. Linux
 
