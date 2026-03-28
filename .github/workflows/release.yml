@@ -35,9 +35,6 @@ jobs:
           - os: ubuntu-latest
             label: linux-amd64
             extension: ""
-          - os: macos-13
-            label: macos-amd64
-            extension: ""
           - os: macos-latest
             label: macos-arm64
             extension: ""
@@ -89,6 +86,5 @@ jobs:
           files: |
             artifacts/uber-jar/institution-name-checker-1.0.0-runner.jar
             artifacts/institution-name-checker-linux-amd64/institution-name-checker-linux-amd64
-            artifacts/institution-name-checker-macos-amd64/institution-name-checker-macos-amd64
             artifacts/institution-name-checker-macos-arm64/institution-name-checker-macos-arm64
             artifacts/institution-name-checker-windows-amd64/institution-name-checker-windows-amd64.exe
