@@ -97,7 +97,15 @@
 
     <script>
         function checkInst(code) {
-            fetch('/check/' + code, { method: 'POST' });
+            var row = document.getElementById('row-' + code);
+            var nameJa = row.querySelectorAll('td')[1].textContent.trim();
+            var urlLink = row.querySelector('td.url a');
+            var instUrl = urlLink ? urlLink.href : '';
+            var q1 = encodeURIComponent(nameJa);
+            var q3 = encodeURIComponent(nameJa + ' English name');
+            window.open('https://duckduckgo.com/?q=' + q1, '_blank');
+            if (instUrl) window.open(instUrl, '_blank');
+            window.open('https://duckduckgo.com/?q=' + q3, '_blank');
         }
         function saveInst(code) {
             var val = document.getElementById('input-' + code).value;
